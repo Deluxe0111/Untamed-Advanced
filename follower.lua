@@ -537,14 +537,26 @@ local function updateCopyMove()
   end
 end
 
+local weatherForms = nil -- D.WEATHER_FORMS with weather names resolved for this version
+
+-- resolve every weather name once (false = never matches)
+local function resolveWeatherForms()
+  weatherForms = {}
+  for sp, forms in pairs(D.WEATHER_FORMS) do
+    local resolved = {}
+    for i = 1, #forms do resolved[i] = { forms[i][1], D.WEATHER[forms[i][2]] or false } end
+    weatherForms[sp] = resolved
+  end
+end
+
 -- REG_MOSAIC becomes actor.mosaic, applied by the atlas shader to this sprite only.
 local function overworldWeatherSpecies(species)
-  local forms = C.OW_FOLLOWERS_WEATHER_FORMS and D.WEATHER_FORMS[species]
+  local forms = C.OW_FOLLOWERS_WEATHER_FORMS and weatherForms[species]
   if not forms then return species end
   local weather = E.weather()
   for i = 1, #forms do
     local f = forms[i]
-    local w = D.WEATHER[f[2]]
+    local w = f[2]
     if w == weather then return f[1] end
     if w == 0 then species = f[1] end -- WEATHER_NONE: default form
   end
@@ -560,7 +572,7 @@ end
 
 local function tryStartFollowerTransformEffect()
   local sp = actor.owSpecies
-  if C.OW_FOLLOWERS_WEATHER_FORMS and D.WEATHER_FORMS[sp]
+  if C.OW_FOLLOWERS_WEATHER_FORMS and weatherForms[sp]
       and sp ~= overworldWeatherSpecies(sp) then
     actor.tType, actor.tFrames = TRANSFORM_TYPE_WEATHER, 0
     E.playSe("SE_M_MINIMIZE")
@@ -1060,6 +1072,7 @@ function Follower.init(engine)
   actor.mosaic, actor.tType, actor.tFrames = 1, nil, 0
   compileMoves()
   resolveConds()
+  resolveWeatherForms()
   actor.typeFunc, actor.act, actor.actStep, actor.actT, actor.actDur = 0, A_NONE, 0, 0, 16
   actor.y2, actor.white, actor.affine, actor.affineT, actor.duration = 0, 0, false, 0, 0
   actor.animT, actor.speedFlip, actor.invisible = 0, 0, true
