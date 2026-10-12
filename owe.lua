@@ -661,6 +661,7 @@ local function spawnOWE(a, x, y)
   a.water = E.encounterKind(x, y) == "water"
   a.y2, a.icon, a.anim, a.animT = 0, -1, nil, 0
   a.saved = false -- OWE_SAVED_MOVEMENT_STATE_FLAG
+  a.grX, a.grY, a.grStep = nil, nil, nil -- new spawn: tickGrass treats it as fresh
   setMovementType(a)
   a.draw, a.pose = draw, pose
   a.active = true
