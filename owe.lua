@@ -1372,7 +1372,10 @@ local function turn(a, d) setDirection(a, d); a.anim = anims(a).face[d] end
 
 -- Task_OWEApproachForBattle: step until next to the player or follower.
 local function approachForBattle(a)
-  if not C.WE_OWE_APPROACH_FOR_BATTLE then return end -- FreezeObjectEvent
+  if not C.WE_OWE_APPROACH_FOR_BATTLE then
+    while a.active and a.act == ACT_WALK do exec(a); yield() end -- finish a step in progress
+    return
+  end -- FreezeObjectEvent
   local F, P = E.FOLLOWER, E.Player
   while a.active do
     if a.act == ACT_NONE then -- ObjectEventClearHeldMovementIfFinished
