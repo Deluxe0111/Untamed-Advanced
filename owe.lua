@@ -304,7 +304,7 @@ local function sortOWEAges()
   local count = 0
   for i = 0, C.OWE_SPAWNS_MAX - 1 do
     local a = slotActor(i)
-    if isOWE(a, "any") and a.species then
+    if isOWE(a, "generated") and a.species then
       count = count + 1
       ageSlot[count], ageVal[count] = i, a.age
     end
