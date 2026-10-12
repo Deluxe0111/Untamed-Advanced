@@ -805,7 +805,7 @@ return function(mod)
   end
 
   function E.random32()
-    if Rng and Rng.Random32 then return Rng.Random32() end
+    if E.Rng and E.Rng.Random32 then return E.Rng.Random32() end
     return E.random() + E.random() * 65536
   end
 
