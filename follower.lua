@@ -914,6 +914,9 @@ local function getFollowerAction(mon)
   end
 
   if picked then
+    -- the scan above may have left resultDir from a later non-chosen entry; recheck the chosen one
+    resultDir = nil
+    checkMsgInfo(COND[multi], mon, species)
     local info = COND[multi].info
     local text = info.text
     if type(text) == "table" then
