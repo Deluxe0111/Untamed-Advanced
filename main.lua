@@ -75,7 +75,6 @@ return function(mod)
     local MB = require("src.core.game3.mb")
     local MapIds = require("src.core.game3.map_ids")
     local Runtime = require("src.core.game3.runtime")
-    local Rng = require("src.core.game3.rng")
     local function id(kind, name) local ok, v = pcall(K.id, K, kind, name); return ok and v or nil end
     local function map(name) return MapIds.forConst(name, game) end
     local function session() return Runtime.getSession() end
@@ -123,6 +122,8 @@ return function(mod)
           local s = session()
           local o = s and s.outbreak
           if type(o) ~= "table" or (tonumber(o.species) or 0) == 0 or o.map ~= s.map then return false end
+          local okRng, Rng = pcall(require, "src.core.game3.rng")
+          if not okRng or type(Rng) ~= "table" then return false end
           return Rng.Random() % 100 < (tonumber(o.probability) or 0)
         end,
         mon = function()
