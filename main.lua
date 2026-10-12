@@ -789,10 +789,13 @@ return function(mod)
     return headerVal
   end
 
-  -- map-bound caches (wild header, follower tile test): cleared on map load
+  -- map-bound caches (wild header, follower tile test, grass and shadow cells): cleared on map load
   function E.invalidateMapCaches()
     headerMap, headerVal = nil, nil
     fvDef = false
+    for i = 1, POOL do actors[i].shX, actors[i].shY = nil, nil end
+    local f = E.FOLLOWER
+    f.grX, f.grY, f.grStep = nil, nil, nil
   end
 
   -- landMonsInfo / waterMonsInfo as a slot list, nil when absent
