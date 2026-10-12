@@ -386,6 +386,9 @@ function Follower.update()
     moveToMapCoords(px, py)
     followerSetGraphics(species, shiny, female)
     actor.invisible = true
+  elseif swap then
+    -- lead changed back before the swap ran: cancel it, unless the ball is closing or closed
+    swap = (actor.act == A_ENTER_POKEBALL or actor.invisible) and { species, shiny, female } or nil
   end
 end
 
