@@ -1399,6 +1399,11 @@ local function approachForBattle(a)
           act, d = ACT_FACE, a.facing
         else
           d = directionFromCollision(a)
+          if checkRestricted(a, d) then
+            P.facing = dirFromTo(px, py, a.cellX, a.cellY)
+            turn(a, dirFromTo(a.cellX, a.cellY, px, py))
+            return
+          end
           setDirection(a, d)
         end
       end
