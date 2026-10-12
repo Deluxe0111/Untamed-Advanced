@@ -573,7 +573,7 @@ local function setSpeciesInfoForOWE(info, x, y)
   -- CreateWildMon: random personality (GetSynchronizedGender = Cute Charm)
   local personality = E.random32()
   local lead = E.leadMon()
-  if lead and E.leadAbility() == V.abilities.CUTE_CHARM and E.random() % 3 ~= 0 then
+  if lead and E.Pokemon.gender and E.leadAbility() == V.abilities.CUTE_CHARM and E.random() % 3 ~= 0 then
     local want = lead.gender == "F" and "M" or "F"
     for _ = 1, 64 do
       local g = E.Pokemon.gender(sp, personality)
