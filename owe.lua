@@ -810,6 +810,7 @@ end
 
 local function clearMovement(a)
   a.single, a.act, a.typeFunc = false, ACT_NONE, 0
+  a.y2 = 0
 end
 
 -- ObjectEventSetSingleMovement(Step0 inits happen on the first exec, same frame)
