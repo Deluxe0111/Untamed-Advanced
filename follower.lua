@@ -46,6 +46,14 @@ local function buildAnims(asym)
     T.exit[dir] = { 0, 1, fl, 0, 3, 0, 0, 1, 0, 1, 1, 0, 2, 1, 0, 3, 1, 0, 4, 1, 0, f, 8, fl }
     T.exitFast[dir] = { 0, 1, fl, 1, 1, 0, 2, 1, 0, 3, 1, 0, 4, 1, 0, f, 2, fl, f, 1, fl }
   end
+  -- anim.total: loop length, summed once here so animFrame does not re-add it
+  for _, kind in pairs(T) do
+    for _, anim in pairs(kind) do
+      local total = 0
+      for i = 2, #anim, 3 do total = total + anim[i] end
+      anim.total = total
+    end
+  end
   return T
 end
 ANIMS[false], ANIMS[true] = buildAnims(false), buildAnims(true)
@@ -53,9 +61,7 @@ Follower.ANIMS = ANIMS -- OWEs use the same OW mon tables
 
 -- frame + hflip of `anim` at tick t (loops)
 local function animFrame(anim, t)
-  local total = 0
-  for i = 2, #anim, 3 do total = total + anim[i] end
-  t = t % total
+  t = t % anim.total
   for i = 1, #anim, 3 do
     t = t - anim[i + 1]
     if t < 0 then return anim[i], anim[i + 2] == 1 end
