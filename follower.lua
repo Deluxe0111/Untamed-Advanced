@@ -418,8 +418,8 @@ end
 local function followablePlayerMovement_Step()
   local targetX, targetY = E.playerPrev()
   local x, y = E.playerCur()
-  -- don't move on player collision or if not visible
-  if (x == targetX and y == targetY) or not E.followerVisible() then return false end
+  -- don't move on player collision (followPlayer_Active already checked visibility)
+  if x == targetX and y == targetY then return false end
 
   x, y = actor.cellX, actor.cellY
   clearMovement()
