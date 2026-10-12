@@ -375,6 +375,7 @@ function Follower.update()
     clearMovement()
     actor.y2, actor.white, actor.affine = 0, 0, false
     actor.anim, actor.animT = nil, 0
+    actor.mosaic, actor.tType, actor.tFrames = 1, nil, 0
     followerSetGraphics(species, shiny, female)
     actor.invisible = true
   elseif species ~= actor.species or shiny ~= actor.shiny or female ~= actor.female then
