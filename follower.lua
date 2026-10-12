@@ -1188,6 +1188,7 @@ function Follower.appearNow()
     local tx, ty = px + DX[d], py + DY[d]
     if E.canMove(actor, tx, ty, d) then
       moveToMapCoords(tx, ty)
+      actor.grX, actor.grY, actor.grStep = nil, nil, nil -- grass tick treats this cell as a fresh spawn
       actor.invisible = false
       faceDirection(Player.facing)
       return
