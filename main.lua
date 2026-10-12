@@ -797,7 +797,7 @@ return function(mod)
 
   -- landMonsInfo / waterMonsInfo as a slot list, nil when absent
   function E.wildArea(header, kind)
-    local area = header and (kind == "water" and header.water or (header.land or header.grass))
+    local area = header and ((kind == "water" and header.water) or (kind ~= "water" and (header.land or header.grass)))
     if type(area) ~= "table" then return nil end
     local slots = area.slots or area.mons or area
     if type(slots) ~= "table" or #slots == 0 then return nil end
