@@ -29,13 +29,11 @@ gender/shiny assessment, and eventual battle all use the **same final
 internal species ID**.
 
 Roamers, Feebas special spawns, outbreaks, and manually placed actors bypass
-this hook. Native encounter chaining retains the original authored species
-internally even when its visible appearance is randomised. Followers are
+this hook. Encounter-chain popups and counts follow the **actual visible/battled species** (for example, Feraligatr rather than the native Rattata slot it replaces). The original authored slot is stored separately, only to preserve the increased chance to spawn that source in later encounters. Followers are
 unaffected.
 
 The hook is optional. Untamed behaves as before when nobody subscribes.
-The corresponding Nuzlocke hook connects this to **Random Wild** using the
-normal Nuzlocke Randomiser seed, Gen 3 species pool, and balance settings.
+The corresponding [Nuzlocke v3.0.0-BETA](https://github.com/Deluxe0111/nuzlocke) hook connects this to **Random Wild** using the normal Nuzlocke Randomiser seed, Gen 3 species pool, and balance settings. Integration by **Deluxe0111**.
 Both mod branches must be installed to enable the feature.
 
 ## In-game tests
@@ -49,8 +47,7 @@ Both mod branches must be installed to enable the feature.
   player followers remain on their existing independent paths.
 - Test a roamer, Feebas tile/outbreak where available: special species
   must remain native.
-- Defeat repeated randomised wandering Pokémon and confirm encounter
-  chaining still progresses without wrong-species or crash reports.
+- Defeat repeated randomised wandering Pokémon (e.g. Feraligatr from a Rattata slot) and confirm the chain popup names **Feraligatr**, the repeat-spawn bonus works, and there are no wrong-species or crash reports.
 - Repeat on FireRed, LeafGreen, Ruby, Sapphire, and Emerald with a
   disposable save.
 
