@@ -16,6 +16,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lua5.1
       - name: Run overworld species hook compatibility smoke
         run: lua5.1 tests/owe_species_hook_smoke.lua
+      - name: Run randomised encounter-chain display regression
+        run: lua5.1 tests/owe_chain_randomizer_smoke.lua
 
   package:
     runs-on: ubuntu-latest
