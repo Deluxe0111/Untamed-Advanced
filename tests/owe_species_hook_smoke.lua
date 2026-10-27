@@ -21,6 +21,7 @@ local runtime = {
 }
 local engine = {
     ModHooks = runtime,
+    Data = { ATLAS = { species = { [25] = 100 } } },
     mapId = function() return "FR_ROUTE_1" end,
     Pokemon = {
         national = function(sp) return ({[16]=16,[25]=25})[sp] end,
@@ -43,6 +44,10 @@ spriteAvailable=false
 assert(Hook.apply(engine,16,7,"land",5,9)==16,
     "missing sprite refuses replacement")
 spriteAvailable=true
+engine.Data.ATLAS.species[25] = nil
+assert(Hook.apply(engine,16,7,"land",5,9)==16,
+    "Substitute placeholder must never represent a different battle species")
+engine.Data.ATLAS.species[25] = 100
 runtime.call=function()
     calls=calls+1
     return {species=999,level=7}
