@@ -1397,6 +1397,7 @@ return function(mod)
   -- onStep(ev), onMapEntered(ev), onBattleStarted(ev), onBattleEnded(ev).
   local Data = include("data.lua")
   E.Data = Data
+  E.OWESpeciesHook = include("owe_species_hook.lua")
   local Follower = include("follower.lua")
   local Owe = include("owe.lua")
   E.Follower, E.Owe = Follower, Owe
