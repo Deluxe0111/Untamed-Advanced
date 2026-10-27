@@ -317,6 +317,7 @@ return function(mod)
     Roamer = "src.core.game3.roamer", FieldEffects = "src.core.game3.field_effects",
     Doors = "src.core.game3.doors", Warp = "src.core.game3.warp",
     Movement = "src.core.game3.scripting.movement", Heal = "src.core.game3.pokecenter_heal",
+    ModHooks = "src.mods.Runtime", -- optional shared hook bus for overworld species providers
     QuestRecorder = "src.core.game3.quest_log_recorder", QuestLogUI = "src.ui.game3.quest_log",
   }) do
     local ok, m = pcall(require, path)
