@@ -28,8 +28,8 @@ Owe._chain.onBattleEnd("win",160,19)
 assert(Owe.chainState()==160 and Owe._chain.source()==19)
 assert(messages[#messages].species==160 and messages[#messages].count==4)
 Owe._chain.onBattleEnd("win",161,20)
-assert(messages[#messages-1].species==160 and
-    messages[#messages-1].count==nil,
+assert(messages[#messages].species==160 and
+    messages[#messages].count==nil,
     "a different visible species breaks the displayed chain")
 assert(Owe.chainState()==161 and Owe._chain.source()==20)
 Owe._chain.onBattleEnd("caught",161,20)
