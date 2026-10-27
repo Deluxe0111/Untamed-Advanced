@@ -276,6 +276,7 @@ end
 local function clearSlot(a)
   a.active, a.moving, a.oweType = false, false, nil
   a.species, a.engineSpecies, a.level, a.age, a.category = nil, nil, 0, 0, nil
+  a.authoredSpecies = nil
   a.noDespawn, a.offScreen = false, false
 end
 
@@ -570,6 +571,39 @@ local function setSpeciesInfoForOWE(info, x, y)
   end
   if not sp then return false end
 
+  -- Shared mod hook: ordinary generated OWEs bypass the engine's native
+  -- encounter.species roll. Offer the authored species to randomisers BEFORE
+  -- computing personality/gender, graphics, cry and battle foe. This makes the
+  -- overworld sprite the same species the player fights.
+  -- Never rewrite roamers, Feebas, outbreaks or manually spawned OWEs.
+  info.authoredSpecies = nil
+  if info.category == CAT_UNDEFINED then
+    local hooks = E.ModHooks
+    if hooks and type(hooks.wantsHook) == "function"
+        and hooks.wantsHook("untamed.owe.species") then
+      local encounter = { species = sp, level = level }
+      local context = { source = "untamed_advanced", mapId = E.mapId(),
+        terrain = kind, x = x, y = y }
+      local replacement = hooks.call("untamed.owe.species",
+        function(original) return original end, encounter, context)
+      local id = type(replacement) == "table"
+          and tonumber(replacement.species) or nil
+      if id and id % 1 == 0 and id > 0 and id ~= sp then
+        -- Reject invalid/unsupported species before touching the actor.
+        -- A missing replacement sprite retains the native choice, avoiding
+        -- invisible wandering Pokemon and surprise different battle species.
+        local ok, dex = pcall(E.Pokemon.national, id)
+        local national = ok and tonumber(dex)
+        local expansion = national and national >= 1 and national <= 386
+            and E.expansionSpecies(id, 0) or nil
+        if expansion and E.Gfx.sheetFor(expansion, false, false) then
+          info.authoredSpecies = sp
+          sp = id
+        end
+      end
+    end
+  end
+
   -- CreateWildMon: random personality (GetSynchronizedGender = Cute Charm)
   local personality = E.random32()
   local lead = E.leadMon()
@@ -649,7 +683,8 @@ local function spawnOWE(a, x, y)
   a.asym = E.Data.ATLAS.asym[info.species] == 1
   a.species, a.engineSpecies, a.level = info.species, info.engineSpecies, info.level
   a.shiny, a.female, a.category, a.noDespawn = info.shiny, info.female, info.category, info.noDespawn
-  a.personality, a.moves = info.personality, info.moves
+  a.personality, a.moves, a.authoredSpecies =
+    info.personality, info.moves, info.authoredSpecies
   a.oweType, a.age, a.offScreen = "generated", 0, false
   a.cellX, a.cellY, a.targetX, a.targetY = x, y, x, y
   a.initX, a.initY = x, y
@@ -706,7 +741,7 @@ function Owe.tick()
   end
 
   info.category, info.noDespawn, info.moves = CAT_UNDEFINED, false, nil
-  info.species, info.engineSpecies = nil, nil
+  info.species, info.engineSpecies, info.authoredSpecies = nil, nil, nil
   local ok = setSpeciesInfoForOWE(info, x, y)
   if not ok
       or (C.WE_OWE_SPECIAL_ONLY and info.category >= CAT_WILD)
@@ -1423,7 +1458,9 @@ local function startWildBattleWithOWE(a)
   local sp = a.engineSpecies
   local done = function(result)
     battleDone = true
-    onChainBattleEnd(result, sp) -- Rogue_Battle_EndWildBattle (PARITY R1)
+    -- The chain table contains authored native species. Track the
+    -- authored source so a randomized visual still earns the chain bonus.
+    onChainBattleEnd(result, a.authoredSpecies or sp) -- PARITY R1
   end
   local cat = a.category
   if cat and cat < ROAMER_COUNT then -- StartWildBattleWithOWE_CheckRoamer
