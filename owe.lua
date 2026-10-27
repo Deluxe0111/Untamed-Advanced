@@ -1433,11 +1433,12 @@ end
 
 local function startWildBattleWithOWE(a)
   local sp = a.engineSpecies
+  -- Battle.started clears the OWE actor. Capture this beforehand so the
+  -- chain remains keyed to the authored source after despawn/writeback.
+  local authored = a.authoredSpecies or sp
   local done = function(result)
     battleDone = true
-    -- The chain table contains authored native species. Track the
-    -- authored source so a randomized visual still earns the chain bonus.
-    onChainBattleEnd(result, a.authoredSpecies or sp) -- PARITY R1
+    onChainBattleEnd(result, authored) -- Rogue parity: original chain slot
   end
   local cat = a.category
   if cat and cat < ROAMER_COUNT then -- StartWildBattleWithOWE_CheckRoamer
