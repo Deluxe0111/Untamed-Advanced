@@ -571,36 +571,13 @@ local function setSpeciesInfoForOWE(info, x, y)
   end
   if not sp then return false end
 
-  -- Shared mod hook: ordinary generated OWEs bypass the engine's native
-  -- encounter.species roll. Offer the authored species to randomisers BEFORE
-  -- computing personality/gender, graphics, cry and battle foe. This makes the
-  -- overworld sprite the same species the player fights.
-  -- Never rewrite roamers, Feebas, outbreaks or manually spawned OWEs.
+  -- Only ordinary generated wild encounters may be remapped. Roamers,
+  -- Feebas, outbreaks and scripted actors preserve their authored identity.
   info.authoredSpecies = nil
-  if info.category == CAT_UNDEFINED then
-    local hooks = E.ModHooks
-    if hooks and type(hooks.wantsHook) == "function"
-        and hooks.wantsHook("untamed.owe.species") then
-      local encounter = { species = sp, level = level }
-      local context = { source = "untamed_advanced", mapId = E.mapId(),
-        terrain = kind, x = x, y = y }
-      local replacement = hooks.call("untamed.owe.species",
-        function(original) return original end, encounter, context)
-      local id = type(replacement) == "table"
-          and tonumber(replacement.species) or nil
-      if id and id % 1 == 0 and id > 0 and id ~= sp then
-        -- Reject invalid/unsupported species before touching the actor.
-        -- A missing replacement sprite retains the native choice, avoiding
-        -- invisible wandering Pokemon and surprise different battle species.
-        local ok, dex = pcall(E.Pokemon.national, id)
-        local national = ok and tonumber(dex)
-        local expansion = national and national >= 1 and national <= 386
-            and E.expansionSpecies(id, 0) or nil
-        if expansion and E.Gfx.sheetFor(expansion, false, false) then
-          info.authoredSpecies = sp
-          sp = id
-        end
-      end
+  if info.category == CAT_UNDEFINED and E.OWESpeciesHook then
+    local chosen = E.OWESpeciesHook.apply(E, sp, level, kind, x, y)
+    if chosen and chosen ~= sp then
+      info.authoredSpecies, sp = sp, chosen
     end
   end
 
