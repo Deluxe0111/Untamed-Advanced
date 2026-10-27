@@ -460,17 +460,25 @@ end
 
 -- Encounter chain (pokeemerald-rogue, not expansion: PARITY R1-R4).
 -- RAM only like sFollowMonData.encounterChain*: never saved.
-local chainSpecies, chainCount = nil, 0
+-- Public chain species is the one actually fought; an internal source slot
+-- is kept only for Rogue's weighted repeat-spawn lookup.
+local chainSpecies, chainCount, chainSource = nil, 0, nil
 
 -- rogue_followmon.c UpdateWildEncounterChain (nil = SPECIES_NONE)
-local function updateWildEncounterChain(species)
+local function updateWildEncounterChain(species, source)
   if chainSpecies ~= species then
-    if chainCount >= 3 then E.popup(chainSpecies, nil) end -- PokemonChainBroke (>= so every shown chain reports its break)
-    chainSpecies, chainCount = species, 0
+    if chainCount >= 3 then E.popup(chainSpecies, nil) end -- PokemonChainBroke
+    chainSpecies, chainCount, chainSource = species, 0, nil
   end
   if species then
+    -- A randomized Feraligatr from a native Rattata slot must display
+    -- Feraligatr in the popup, while the source slot still controls which
+    -- authored encounter may receive Rogue's increased spawn odds.
+    chainSource = source or species
     if chainCount < 255 then chainCount = chainCount + 1 end
     if chainCount >= 3 then E.popup(species, chainCount) end -- PokemonChain
+  else
+    chainSource = nil
   end
 end
 
@@ -482,9 +490,9 @@ local CHAIN_FAIL = { lose = true, lost = true, blackout = true, whiteout = true,
   mon_fled = true, mon_teleported = true, player_teleported = true }
 
 -- Rogue_Battle_EndWildBattle (chain part)
-local function onChainBattleEnd(result, species)
+local function onChainBattleEnd(result, species, source)
   if not C.OWE_ROGUE_CHAIN then return end
-  if CHAIN_WON[result] then updateWildEncounterChain(species)
+  if CHAIN_WON[result] then updateWildEncounterChain(species, source)
   elseif CHAIN_CAUGHT[result] or (CHAIN_FAIL[result] and chainSpecies == species) then
     updateWildEncounterChain(nil)
   end
@@ -502,8 +510,9 @@ end
 -- IsChainSpeciesValidForSpawning -> matching slot (for its level range)
 local function chainSlot(slots)
   if not chainSpecies then return nil end
+  local authored = chainSource or chainSpecies
   for i = 1, #slots do
-    if entrySpecies(slots[i]) == chainSpecies then return slots[i] end
+    if entrySpecies(slots[i]) == authored then return slots[i] end
   end
   return nil
 end
@@ -518,10 +527,14 @@ local function forceChainSpeciesSpawn(slots)
   return nil
 end
 
-function Owe.chainState() return chainSpecies, chainCount end
+function Owe.chainState() return chainSpecies, chainCount, chainSource end
 Owe._chain = { update = updateWildEncounterChain, onBattleEnd = onChainBattleEnd,
   shinyOdds = getEncounterChainShinyOdds,
-  set = function(s, n) chainSpecies, chainCount = s, n end }
+  source = function() return chainSource end,
+  sourceSlot = chainSlot,
+  set = function(s, n, source)
+    chainSpecies, chainCount, chainSource = s, n, source or s
+  end }
 
 local function roamerOWEExists(index)
   for i = FIRST, LAST do
@@ -561,7 +574,10 @@ local function setSpeciesInfoForOWE(info, x, y)
     else
       chainE = forceChainSpeciesSpawn(slots) -- Rogue_CreateWildMon (PARITY R2)
       if chainE then
-        sp, level = chainSpecies, chooseWildMonLevel(chainE)
+        -- Force the authored slot, then remap it once through the hook.
+        -- Never feed the randomized display species back into the native
+        -- spawn table: it may not be one of that area's native slots.
+        sp, level = entrySpecies(chainE), chooseWildMonLevel(chainE)
       else
         sp, level = tryGenerateWildMon(slots, kind)
       end
@@ -1433,12 +1449,13 @@ end
 
 local function startWildBattleWithOWE(a)
   local sp = a.engineSpecies
-  -- Battle.started clears the OWE actor. Capture this beforehand so the
-  -- chain remains keyed to the authored source after despawn/writeback.
+  -- Battle.started clears the OWE actor. Snapshot both identities:
+  -- public chain display/battles use the visible species; repeat-spawn
+  -- lookup internally uses the authored source slot.
   local authored = a.authoredSpecies or sp
   local done = function(result)
     battleDone = true
-    onChainBattleEnd(result, authored) -- Rogue parity: original chain slot
+    onChainBattleEnd(result, sp, authored)
   end
   local cat = a.category
   if cat and cat < ROAMER_COUNT then -- StartWildBattleWithOWE_CheckRoamer
