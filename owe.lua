@@ -619,6 +619,17 @@ local function setSpeciesInfoForOWE(info, x, y)
     personality, info.shiny = E.makeShiny(personality), true
     info.species = E.expansionSpecies(sp, personality) or info.species
   end
+  -- Nuzlocke and other optional providers adjust the actual personality
+  -- here, not merely a temporary shiny display flag. This also preserves
+  -- native chain shinies and makes the OWE sprite match battle/capture.
+  if info.category == CAT_UNDEFINED and E.OWESpeciesHook then
+    local pid, isShiny = E.OWESpeciesHook.applyShiny(
+      E, sp, level, personality, info.shiny, kind, x, y)
+    if pid ~= personality then
+      personality, info.shiny = pid, isShiny
+      info.species = E.expansionSpecies(sp, personality) or info.species
+    end
+  end
   info.personality = personality
   info.female = E.femaleFor(sp, personality)
   if C.WE_OWE_PREVENT_SHINY_DESPAWN and info.shiny then info.noDespawn = true end
