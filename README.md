@@ -21,6 +21,7 @@ With both compatible mods installed, turning **Random Wild ON** in Nuzlocke also
 
 - **Followers stay yours.** Your lead Pokémon and scripted/special overworld encounters are not randomised.
 - **Chaining shows the actual Pokémon.** If Feraligatr appears in a native Rattata slot, defeating it counts towards a **Feraligatr** chain, not a Rattata chain. The original slot is kept internally for chain-based spawn odds.
+- **Shiny Rate matches visible Pokémon.** Nuzlocke's **CLAUSES → SHINY RATE** also changes the odds of ordinary wandering Pokémon, even with Random Wild OFF. A boosted shiny is already shiny in the overworld and stays shiny in battle/capture — no surprise battle reroll. Untamed's native chain bonuses remain active.
 - **No Nuzlocke required.** Untamed's usual wandering encounters and chaining still work when Nuzlocke isn't installed or Random Wild is OFF.
 
 Compatibility integration by **[Deluxe0111](https://github.com/Deluxe0111)**. For the technical hook contract, see [Overworld Randomiser Hook](docs/OWE_RANDOMIZER_HOOK.md).
