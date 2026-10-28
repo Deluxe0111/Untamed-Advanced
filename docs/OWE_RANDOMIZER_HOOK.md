@@ -53,3 +53,35 @@ Both mod branches must be installed to enable the feature.
 
 These checks require a running ROM; the repo's headless Lua tests cover
 the hook fallback/sprite-eligibility contract, not the renderer.
+
+## Shiny rate integration
+
+Ordinary generated wandering Pokémon also offer an optional
+`untamed.owe.shiny` hook **after the native personality and chain-shiny
+decisions**, but before the sprite and battle Pokémon are finalised.
+
+```lua
+mod.hooks:wrap("untamed.owe.shiny", function(next, source, ctx)
+    local mon = next(source, ctx)
+    -- source: { species, level, personality, shiny }
+    -- ctx: { source="untamed_advanced", mapId, terrain, x, y,
+    --        makeShiny=function(personality) }
+    -- Return a copy with personality=ctx.makeShiny(mon.personality)
+    -- and shiny=true, or return the original.
+    return mon
+end)
+```
+
+Only valid shiny personalities with the original low 16 bits are accepted;
+changing species, level, or an already naturally/chain-shiny Pokémon is
+rejected. The converted personality is used for the overworld colour,
+shiny sparkle, non-despawn handling, and the later wild battle/capture.
+No additional shiny roll is made by Untamed if no provider subscribes.
+
+**Nuzlocke v3.0.0-BETA:** `CLAUSES → SHINY RATE` affects regular
+wandering Pokémon as well as native wild battles, even if Random Wild is
+OFF. The companion Nuzlocke mod records the spawn decision so it cannot
+reroll the same Pokémon at battle start. Roamers, Feebas, outbreaks,
+scripted actors and player followers are excluded. Native chaining still
+offers its own bonus, so chain-shiny odds can exceed the configured base
+rate. Both updated mods must be installed for visible shiny spawns.
