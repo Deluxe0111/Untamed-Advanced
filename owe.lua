@@ -276,6 +276,7 @@ end
 local function clearSlot(a)
   a.active, a.moving, a.oweType = false, false, nil
   a.species, a.engineSpecies, a.level, a.age, a.category = nil, nil, 0, 0, nil
+  a.authoredSpecies = nil
   a.noDespawn, a.offScreen = false, false
 end
 
@@ -459,17 +460,25 @@ end
 
 -- Encounter chain (pokeemerald-rogue, not expansion: PARITY R1-R4).
 -- RAM only like sFollowMonData.encounterChain*: never saved.
-local chainSpecies, chainCount = nil, 0
+-- Public chain species is the one actually fought; an internal source slot
+-- is kept only for Rogue's weighted repeat-spawn lookup.
+local chainSpecies, chainCount, chainSource = nil, 0, nil
 
 -- rogue_followmon.c UpdateWildEncounterChain (nil = SPECIES_NONE)
-local function updateWildEncounterChain(species)
+local function updateWildEncounterChain(species, source)
   if chainSpecies ~= species then
-    if chainCount >= 3 then E.popup(chainSpecies, nil) end -- PokemonChainBroke (>= so every shown chain reports its break)
-    chainSpecies, chainCount = species, 0
+    if chainCount >= 3 then E.popup(chainSpecies, nil) end -- PokemonChainBroke
+    chainSpecies, chainCount, chainSource = species, 0, nil
   end
   if species then
+    -- A randomized Feraligatr from a native Rattata slot must display
+    -- Feraligatr in the popup, while the source slot still controls which
+    -- authored encounter may receive Rogue's increased spawn odds.
+    chainSource = source or species
     if chainCount < 255 then chainCount = chainCount + 1 end
     if chainCount >= 3 then E.popup(species, chainCount) end -- PokemonChain
+  else
+    chainSource = nil
   end
 end
 
@@ -481,9 +490,9 @@ local CHAIN_FAIL = { lose = true, lost = true, blackout = true, whiteout = true,
   mon_fled = true, mon_teleported = true, player_teleported = true }
 
 -- Rogue_Battle_EndWildBattle (chain part)
-local function onChainBattleEnd(result, species)
+local function onChainBattleEnd(result, species, source)
   if not C.OWE_ROGUE_CHAIN then return end
-  if CHAIN_WON[result] then updateWildEncounterChain(species)
+  if CHAIN_WON[result] then updateWildEncounterChain(species, source)
   elseif CHAIN_CAUGHT[result] or (CHAIN_FAIL[result] and chainSpecies == species) then
     updateWildEncounterChain(nil)
   end
@@ -501,8 +510,9 @@ end
 -- IsChainSpeciesValidForSpawning -> matching slot (for its level range)
 local function chainSlot(slots)
   if not chainSpecies then return nil end
+  local authored = chainSource or chainSpecies
   for i = 1, #slots do
-    if entrySpecies(slots[i]) == chainSpecies then return slots[i] end
+    if entrySpecies(slots[i]) == authored then return slots[i] end
   end
   return nil
 end
@@ -517,10 +527,14 @@ local function forceChainSpeciesSpawn(slots)
   return nil
 end
 
-function Owe.chainState() return chainSpecies, chainCount end
+function Owe.chainState() return chainSpecies, chainCount, chainSource end
 Owe._chain = { update = updateWildEncounterChain, onBattleEnd = onChainBattleEnd,
   shinyOdds = getEncounterChainShinyOdds,
-  set = function(s, n) chainSpecies, chainCount = s, n end }
+  source = function() return chainSource end,
+  sourceSlot = chainSlot,
+  set = function(s, n, source)
+    chainSpecies, chainCount, chainSource = s, n, source or s
+  end }
 
 local function roamerOWEExists(index)
   for i = FIRST, LAST do
@@ -560,7 +574,10 @@ local function setSpeciesInfoForOWE(info, x, y)
     else
       chainE = forceChainSpeciesSpawn(slots) -- Rogue_CreateWildMon (PARITY R2)
       if chainE then
-        sp, level = chainSpecies, chooseWildMonLevel(chainE)
+        -- Force the authored slot, then remap it once through the hook.
+        -- Never feed the randomized display species back into the native
+        -- spawn table: it may not be one of that area's native slots.
+        sp, level = entrySpecies(chainE), chooseWildMonLevel(chainE)
       else
         sp, level = tryGenerateWildMon(slots, kind)
       end
@@ -569,6 +586,16 @@ local function setSpeciesInfoForOWE(info, x, y)
     sp, level = tryGenerateWildMon(slots, kind)
   end
   if not sp then return false end
+
+  -- Only ordinary generated wild encounters may be remapped. Roamers,
+  -- Feebas, outbreaks and scripted actors preserve their authored identity.
+  info.authoredSpecies = nil
+  if info.category == CAT_UNDEFINED and E.OWESpeciesHook then
+    local chosen = E.OWESpeciesHook.apply(E, sp, level, kind, x, y)
+    if chosen and chosen ~= sp then
+      info.authoredSpecies, sp = sp, chosen
+    end
+  end
 
   -- CreateWildMon: random personality (GetSynchronizedGender = Cute Charm)
   local personality = E.random32()
@@ -591,6 +618,17 @@ local function setSpeciesInfoForOWE(info, x, y)
   if chainE and not info.shiny and E.random() % getEncounterChainShinyOdds(chainCount) == 0 then
     personality, info.shiny = E.makeShiny(personality), true
     info.species = E.expansionSpecies(sp, personality) or info.species
+  end
+  -- Nuzlocke and other optional providers adjust the actual personality
+  -- here, not merely a temporary shiny display flag. This also preserves
+  -- native chain shinies and makes the OWE sprite match battle/capture.
+  if info.category == CAT_UNDEFINED and E.OWESpeciesHook then
+    local pid, isShiny = E.OWESpeciesHook.applyShiny(
+      E, sp, level, personality, info.shiny, kind, x, y)
+    if pid ~= personality then
+      personality, info.shiny = pid, isShiny
+      info.species = E.expansionSpecies(sp, personality) or info.species
+    end
   end
   info.personality = personality
   info.female = E.femaleFor(sp, personality)
@@ -649,7 +687,8 @@ local function spawnOWE(a, x, y)
   a.asym = E.Data.ATLAS.asym[info.species] == 1
   a.species, a.engineSpecies, a.level = info.species, info.engineSpecies, info.level
   a.shiny, a.female, a.category, a.noDespawn = info.shiny, info.female, info.category, info.noDespawn
-  a.personality, a.moves = info.personality, info.moves
+  a.personality, a.moves, a.authoredSpecies =
+    info.personality, info.moves, info.authoredSpecies
   a.oweType, a.age, a.offScreen = "generated", 0, false
   a.cellX, a.cellY, a.targetX, a.targetY = x, y, x, y
   a.initX, a.initY = x, y
@@ -706,7 +745,7 @@ function Owe.tick()
   end
 
   info.category, info.noDespawn, info.moves = CAT_UNDEFINED, false, nil
-  info.species, info.engineSpecies = nil, nil
+  info.species, info.engineSpecies, info.authoredSpecies = nil, nil, nil
   local ok = setSpeciesInfoForOWE(info, x, y)
   if not ok
       or (C.WE_OWE_SPECIAL_ONLY and info.category >= CAT_WILD)
@@ -1421,9 +1460,13 @@ end
 
 local function startWildBattleWithOWE(a)
   local sp = a.engineSpecies
+  -- Battle.started clears the OWE actor. Snapshot both identities:
+  -- public chain display/battles use the visible species; repeat-spawn
+  -- lookup internally uses the authored source slot.
+  local authored = a.authoredSpecies or sp
   local done = function(result)
     battleDone = true
-    onChainBattleEnd(result, sp) -- Rogue_Battle_EndWildBattle (PARITY R1)
+    onChainBattleEnd(result, sp, authored)
   end
   local cat = a.category
   if cat and cat < ROAMER_COUNT then -- StartWildBattleWithOWE_CheckRoamer

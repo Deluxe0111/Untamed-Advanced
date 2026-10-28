@@ -317,6 +317,7 @@ return function(mod)
     Roamer = "src.core.game3.roamer", FieldEffects = "src.core.game3.field_effects",
     Doors = "src.core.game3.doors", Warp = "src.core.game3.warp",
     Movement = "src.core.game3.scripting.movement", Heal = "src.core.game3.pokecenter_heal",
+    ModHooks = "src.mods.Runtime", -- optional shared hook bus for overworld species providers
     QuestRecorder = "src.core.game3.quest_log_recorder", QuestLogUI = "src.ui.game3.quest_log",
   }) do
     local ok, m = pcall(require, path)
@@ -1396,6 +1397,7 @@ return function(mod)
   -- onStep(ev), onMapEntered(ev), onBattleStarted(ev), onBattleEnded(ev).
   local Data = include("data.lua")
   E.Data = Data
+  E.OWESpeciesHook = include("owe_species_hook.lua")
   local Follower = include("follower.lua")
   local Owe = include("owe.lua")
   E.Follower, E.Owe = Follower, Owe
