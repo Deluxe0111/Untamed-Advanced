@@ -62,4 +62,44 @@ assert(Hook.apply(engine,16,7,"land",5,9)==16,
     "missing provider result does not break spawn")
 assert(Hook.apply({mapId=engine.mapId},16,7,"land",5,9)==16,
     "without shared runtime Untamed retains vanilla behaviour")
-print("Untamed OWE randomiser adapter: PASS")
+-- Shiny conversion must happen in the OWE PID, not just the rendered flag.
+local shinyHookEnabled, shinyCalls = false, 0
+engine.shinyFor = function(pid) return pid == 65546 end
+engine.makeShiny = function(pid)
+    assert(pid == 10)
+    return 65546
+end
+runtime.wantsHook = function(name)
+    return name == "untamed.owe.shiny" and shinyHookEnabled
+end
+runtime.call = function(name, native, source, ctx)
+    shinyCalls = shinyCalls + 1
+    assert(name == "untamed.owe.shiny")
+    assert(source.species == 25 and source.level == 7
+        and source.personality == 10 and source.shiny == false)
+    assert(ctx.source == "untamed_advanced" and ctx.terrain == "land")
+    return { species = source.species, level = source.level,
+        personality = ctx.makeShiny(source.personality), shiny = true }
+end
+local pid, shiny = Hook.applyShiny(engine,25,7,10,false,"land",5,9)
+assert(pid == 10 and not shiny and shinyCalls == 0,
+    "without a provider, native overworld shininess is unchanged")
+shinyHookEnabled = true
+pid, shiny = Hook.applyShiny(engine,25,7,10,false,"land",5,9)
+assert(pid == 65546 and shiny and shinyCalls == 1,
+    "validated PID changes sprite and eventual battle shininess")
+pid, shiny = Hook.applyShiny(engine,25,7,10,true,"land",5,9)
+assert(pid == 10 and shiny, "naturally shiny OWEs are never rewritten")
+runtime.call = function() return {species=25,level=7,
+    personality=11,shiny=true} end
+pid, shiny = Hook.applyShiny(engine,25,7,10,false,"land",5,9)
+assert(pid == 10 and not shiny,
+    "unverified PID must not make a false shiny sprite")
+runtime.call = function() return {species=16,level=7,
+    personality=65546,shiny=true} end
+pid, shiny = Hook.applyShiny(engine,25,7,10,false,"land",5,9)
+assert(pid == 10 and not shiny,
+    "shiny hook may not change species")
+assert(select(1,Hook.applyShiny({},25,7,10,false,"land",5,9)) == 10,
+    "missing runtime keeps ordinary shiny calculation")
+print("Untamed OWE species and shiny adapters: PASS")
