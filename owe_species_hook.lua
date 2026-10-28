@@ -33,4 +33,36 @@ function M.apply(E, species, level, kind, x, y)
   if not okSheet or not sheet then return species end
   return id
 end
+-- Optional shiny-personality hook. Only a validated native-shiny PID may
+-- replace the original. Retaining the low 16 bits preserves gender-related
+-- properties, and makes the visible sprite agree with the eventual battle.
+function M.applyShiny(E, species, level, personality, shiny, kind, x, y)
+  local hooks = type(E) == "table" and E.ModHooks
+  if type(hooks) ~= "table" or type(hooks.wantsHook) ~= "function"
+      or type(hooks.call) ~= "function"
+      or not hooks.wantsHook("untamed.owe.shiny") then
+    return personality, shiny
+  end
+  local source = { species = species, level = level,
+    personality = personality, shiny = shiny }
+  local ctx = { source = "untamed_advanced", mapId = E.mapId(),
+    terrain = kind, x = x, y = y,
+    makeShiny = function(pid) return E.makeShiny(pid) end }
+  local value = hooks.call("untamed.owe.shiny",
+    function(original) return original end, source, ctx)
+  if type(value) ~= "table" or value.species ~= species
+      or value.level ~= level or value.shiny ~= true or shiny then
+    return personality, shiny
+  end
+  local pid = value.personality
+  if type(pid) ~= "number" or pid ~= math.floor(pid)
+      or pid < 0 or pid >= 4294967296 or pid == personality
+      or pid % 65536 ~= personality % 65536 then
+    return personality, shiny
+  end
+  local ok, nativeShiny = pcall(E.shinyFor, pid)
+  if not ok or nativeShiny ~= true then return personality, shiny end
+  return pid, true
+end
+
 return M
