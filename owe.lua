@@ -579,7 +579,11 @@ local function setSpeciesInfoForOWE(info, x, y)
         -- spawn table: it may not be one of that area's native slots.
         sp, level = entrySpecies(chainE), chooseWildMonLevel(chainE)
       else
-        sp, level = tryGenerateWildMon(slots, kind)
+        -- Ordinary visual encounters need a fresh Modern Spawns draw,
+        -- rather than reusing only the native Route 1 source species.
+        -- The native weights/level ranges are retained by the adapter.
+        local drawn = E.modernWildArea and E.modernWildArea(kind, slots)
+        sp, level = tryGenerateWildMon(drawn or slots, kind)
       end
     end
   else
