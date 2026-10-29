@@ -40,6 +40,9 @@ end
 -- replace the original. Retaining the low 16 bits preserves gender-related
 -- properties, and makes the visible sprite agree with the eventual battle.
 function M.applyShiny(E, species, level, personality, shiny, kind, x, y)
+  -- Natural and chain shinies are already authoritative. Never ask another
+  -- provider to reroll them or consume its random stream.
+  if shiny == true then return personality, shiny end
   local hooks = type(E) == "table" and E.ModHooks
   if type(hooks) ~= "table" or type(hooks.wantsHook) ~= "function"
       or type(hooks.call) ~= "function"
