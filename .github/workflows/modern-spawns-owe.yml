@@ -5,6 +5,7 @@ on:
     paths:
       - 'main.lua'
       - 'owe.lua'
+      - 'owe_species_hook.lua'
       - 'modern_owe_adapter.lua'
       - 'tests/modern_spawns_owe_test.lua'
       - '.github/workflows/modern-spawns-owe.yml'
@@ -12,6 +13,7 @@ on:
     paths:
       - 'main.lua'
       - 'owe.lua'
+      - 'owe_species_hook.lua'
       - 'modern_owe_adapter.lua'
       - 'tests/modern_spawns_owe_test.lua'
       - '.github/workflows/modern-spawns-owe.yml'
