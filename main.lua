@@ -8,6 +8,8 @@ return function(mod)
     return chunk()
   end
 
+  local ExpansionSpeciesMap = include("owe_expansion_species_map.lua")
+
   -- Per-version assumptions live only here; nil = unsupported (feature stays off).
   local VERSIONS = {
     firered = {
@@ -1081,15 +1083,29 @@ return function(mod)
 
   --- Expansion species id for an engine species (national dex, Unown letter
   --- forms at SPECIES_UNOWN_B + n - 1).  nil if it has no national number.
-  local SPECIES_UNOWN, SPECIES_UNOWN_B = 201, 1024
   function E.expansionSpecies(species, personality)
     local nat = Pokemon.national(species)
     if not nat then return nil end
-    if nat == SPECIES_UNOWN and personality then
-      local l = Pokemon.unownLetter(personality)
-      if l > 0 then nat = SPECIES_UNOWN_B + l - 1 end
+    -- National Dex #906 is Sprigatito, but expansion SPECIES_906 is
+    -- Mega Venusaur. Translate ONLY the visual atlas ID; battle/save
+    -- species are left in the engine's original numeric namespace.
+    -- National Dex alternate forms have their own engine slots but the
+    -- same National number; prefer its public slot -> form-id API.
+    local formId
+    if type(species) == "number" and species >= 1090
+        and type(mod.find) == "function" then
+      local ok, dex = pcall(mod.find, mod, "national_dex_gen3")
+      local exports = ok and dex and dex.exports
+      if type(exports) == "table" and type(exports.idOfSlot) == "function" then
+        local okId, id = pcall(exports.idOfSlot, species)
+        if okId and type(id) == "string" then formId = id end
+      end
     end
-    return nat
+    local letter
+    if nat == 201 and personality then
+      letter = Pokemon.unownLetter(personality)
+    end
+    return ExpansionSpeciesMap.resolve(nat, formId, letter)
   end
 
   -- src/wild_encounter.c:974 GetLocalWildMon (ChooseWildMonIndex_Land/Water
