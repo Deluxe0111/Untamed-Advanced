@@ -26,6 +26,25 @@ With both compatible mods installed, turning **Random Wild ON** in Nuzlocke also
 
 Compatibility integration by **[Deluxe0111](https://github.com/Deluxe0111)**. For the technical hook contract, see [Overworld Randomiser Hook](docs/OWE_RANDOMIZER_HOOK.md).
 
+## Expanded National Dex sprite compatibility
+
+National Dex Gen 3, Modern Spawns and Untamed use different species numbering
+systems. A Gen 9 Pokémon can have a **National Dex number**, an **engine slot**,
+and a different **pokeemerald-expansion overworld atlas ID**. For example,
+Sprigatito is National #906, registered at engine slot 970, but its expansion
+overworld artwork is #1289; raw atlas key 906 would draw Mega Venusaur.
+
+The optional [sprite-ID translation](owe_expansion_species_map.lua) corrects
+the 120 Paldean base species and atlas-backed alternate forms without changing
+Pokémon identities, Nuzlocke run state, save data or randomiser seeds. Four
+Floette colour variants currently have no matching artwork in Untamed's built-in
+atlas and therefore fail closed instead of using misleading art.
+
+**This is an artwork/identity fix, not yet full six-mod certification.** In
+particular, Nuzlocke's own randomiser still has a Gen 3-only species pool and
+Modern Spawns can independently choose expanded species. The mods' randomiser
+priority and shiny/provider ownership need further integration tests.
+
 ## Credits
 
 See [CREDITS.md](CREDITS.md).
