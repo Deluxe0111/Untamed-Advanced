@@ -54,6 +54,23 @@ Both mod branches must be installed to enable the feature.
 These checks require a running ROM; the repo's headless Lua tests cover
 the hook fallback/sprite-eligibility contract, not the renderer.
 
+## Modern Spawns integration
+
+Untamed's ordinary land/water OWE picker is independent of the engine's
+`encounter.species` hooks. If Modern Spawns is installed, active and exposes
+API v2 `drawFor`, Untamed calls `drawFor(mapId, "land"|"water")` **once
+per ordinary visible spawn**. It uses only the picked species, preserving
+the original engine's slot probabilities and level ranges. A fixed number
+of native slots does not limit COMPLETE mode's potential species roster.
+
+The provider's canonical Pokémon names are translated to native internal
+engine slots via `Pokemon.speciesFromName`. Missing APIs, invalid tables,
+unregistered Pokémon and artwork without an Untamed atlas sheet fail back
+to the original native source slot. Non-ordinary OWE categories are unchanged.
+Nuzlocke's optional `untamed.owe.species` hook still runs after this draw.
+
+See [OWE Modern Spawns details](OWE_MODERN_SPAWNS.md).
+
 ## Shiny rate integration
 
 Ordinary generated wandering Pokémon also offer an optional

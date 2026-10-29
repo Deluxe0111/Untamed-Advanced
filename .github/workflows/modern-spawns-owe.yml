@@ -1,0 +1,30 @@
+name: Untamed Modern Spawns OWE checks
+
+on:
+  push:
+    paths:
+      - 'main.lua'
+      - 'owe.lua'
+      - 'owe_species_hook.lua'
+      - 'modern_owe_adapter.lua'
+      - 'tests/modern_spawns_owe_test.lua'
+      - '.github/workflows/modern-spawns-owe.yml'
+  pull_request:
+    paths:
+      - 'main.lua'
+      - 'owe.lua'
+      - 'owe_species_hook.lua'
+      - 'modern_owe_adapter.lua'
+      - 'tests/modern_spawns_owe_test.lua'
+      - '.github/workflows/modern-spawns-owe.yml'
+  workflow_dispatch:
+
+jobs:
+  adapter-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Modern Spawns OWE contract test
+        run: lua5.1 tests/modern_spawns_owe_test.lua

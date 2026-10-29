@@ -41,9 +41,30 @@ Floette colour variants currently have no matching artwork in Untamed's built-in
 atlas and therefore fail closed instead of using misleading art.
 
 **This is an artwork/identity fix, not yet full six-mod certification.** In
-particular, Nuzlocke's own randomiser still has a Gen 3-only species pool and
-Modern Spawns can independently choose expanded species. The mods' randomiser
+particular, Nuzlocke and Modern Spawns can independently select expanded
+species and their randomiser precedence still needs live validation. The mods' randomiser
 priority and shiny/provider ownership need further integration tests.
+
+## Modern Spawns visible-encounter support
+
+With [Modern Spawns](https://github.com/poooooby/g1r_modern_spawns)
+installed and enabled, Untamed now asks its public `drawFor(mapId, terrain)`
+API for **each normal visible wild spawn**. In **COMPLETE** mode this samples
+the larger per-slot species pools instead of repeatedly displaying only the
+original two Route 1 species. RANDOM likewise draws a new table per spawn;
+LIMITED and EVERY MAP use their corresponding rosters.
+
+The **native number of spawn slots, appearance odds, level ranges and
+concurrent overworld actor count remain unchanged**. Untamed falls back to
+native species for missing provider APIs and any alternate form without a
+supported sprite. Special roamers, Feebas, outbreaks and scripted actors keep
+their separate logic; Nuzlocke's Random Wild hook still runs afterwards for
+ordinary visible spawns. A native chain-forced source remains independent
+of these fresh random draws.
+
+See [Modern Spawns integration notes](docs/OWE_MODERN_SPAWNS.md).
+This integration needs on-ROM testing with all three mods before calling
+the combined stack verified.
 
 ## Credits
 

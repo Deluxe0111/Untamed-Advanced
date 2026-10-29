@@ -811,6 +811,11 @@ return function(mod)
     return slots
   end
 
+  -- Visible wilds are spawned by Untamed, not the engine's encounter
+  -- hooks. Use Modern Spawns' per-pick API when present, preserving the
+  -- original land/water slot weights, levels, collision and battle flow.
+  E.modernWildArea = include("modern_owe_adapter.lua")(mod, E)
+
   function E.random32()
     if E.Rng and E.Rng.Random32 then return E.Rng.Random32() end
     return E.random() + E.random() * 65536
