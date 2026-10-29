@@ -1,6 +1,6 @@
 -- Pure contract check: Untamed consumes Modern Spawns without changing
 -- the map's encounter slot count, levels or source tables.
-local factory = assert(loadfile("modern_owe_adapter.lua"))()()
+local factory = assert(loadfile("modern_owe_adapter.lua"))()
 local calls, active, mode = 0, true, "complete"
 local MOD = {
   find=function(_,id)
@@ -24,7 +24,6 @@ local MOD = {
 local pokemon={
   ALPHA=100, BETA=200, UNSUPPORTED=300,
   national=function(id) return id end,
-  speciesFromName=function(name) return pokemon[name] end,
 }
 -- Avoid a closure-upvalue initializer issue in older Lua.
 pokemon.speciesFromName=function(name) return pokemon[name] end
