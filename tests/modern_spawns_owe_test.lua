@@ -54,7 +54,7 @@ assert(draw("fish",native)==nil and calls==1)
 -- Bad provider payload must fall back to the native spawn table.
 MOD.find=function()
   return {exports={apiVersion=2,isActive=function()return true end,
-    drawFor=function() return {slots={{species="ALPHA"}} end}}
+    drawFor=function() return {slots={{species="ALPHA"}}} end}}
 end
 assert(draw("land",native)==nil)
 print("Untamed / Modern Spawns per-pick adapter: PASS")
