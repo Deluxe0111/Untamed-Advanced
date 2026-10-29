@@ -62,6 +62,31 @@ assert(Hook.apply(engine,16,7,"land",5,9)==16,
     "missing provider result does not break spawn")
 assert(Hook.apply({mapId=engine.mapId},16,7,"land",5,9)==16,
     "without shared runtime Untamed retains vanilla behaviour")
+-- A National Dex Gen 3 Pokémon uses three DIFFERENT identifiers:
+-- native slot 970, National #906, expansion atlas 1289 (Sprigatito).
+-- The atlas ID 906 is Mega Venusaur, so it must never be drawn directly.
+engine.Pokemon.national = function(sp)
+    return ({[16]=16,[25]=25,[970]=906})[sp]
+end
+local spriteMap = assert(loadfile("owe_expansion_species_map.lua"))()
+engine.expansionSpecies = function(sp)
+    return spriteMap.resolve(engine.Pokemon.national(sp))
+end
+engine.Data.ATLAS.species[1289] = 101
+engine.Gfx.sheetFor = function(sp, female, shiny)
+    return spriteAvailable and sp==1289 and not female and not shiny
+        and 101 or nil
+end
+runtime.wantsHook = function(name)
+    return name == "untamed.owe.species"
+end
+runtime.call = function() return {species=970,level=7} end
+assert(Hook.apply(engine,16,7,"land",5,9)==970,
+    "expanded species with a verified proper atlas sprite must be accepted")
+engine.Data.ATLAS.species[1289] = nil
+assert(Hook.apply(engine,16,7,"land",5,9)==16,
+    "expanded species must not spawn with a missing or incorrect sprite")
+engine.Data.ATLAS.species[1289] = 101
 -- Shiny conversion must happen in the OWE PID, not just the rendered flag.
 local shinyHookEnabled, shinyCalls = false, 0
 engine.shinyFor = function(pid) return pid == 65546 end

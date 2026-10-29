@@ -20,9 +20,12 @@ function M.apply(E, species, level, kind, x, y)
   -- or visual assets are absent. Followers and scripted OWEs never come here.
   local ok, dex = pcall(E.Pokemon.national, id)
   local nat = ok and tonumber(dex)
-  if not nat or nat < 1 or nat > 386 then return species end
+  -- National Dex Gen 3 may register genuine #387-1025 species at engine
+  -- slots unrelated to either their National number or expansion atlas id.
+  -- Validate the translated sprite, not a hardcoded Gen 3 386 cap.
+  if not nat or nat < 1 or nat > 1025 then return species end
   local okForm, gfx = pcall(E.expansionSpecies, id, 0)
-  if not okForm or not gfx then return species end
+  if not okForm or type(gfx) ~= "number" then return species end
   -- sheetFor() can return the generic Substitute placeholder when an
   -- actual Pokemon sprite is absent. Require a real atlas species sheet:
   -- the thing visible to the player must match the battle Pokemon.
