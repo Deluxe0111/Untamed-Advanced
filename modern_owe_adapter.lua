@@ -3,9 +3,20 @@
 -- drawFor() varies the species inside those slots for RANDOM and COMPLETE.
 -- This helper is pure enough to exercise with mocked provider/atlas data.
 return function(mod, E)
+  -- Modern's registry may return canonical species names rather than
+  -- internal Gen 3 numeric slots; map them before calling Untamed.
+  local function engineSpecies(value)
+    local id = tonumber(value)
+    if id == nil and type(value) == "string"
+        and type(E.Pokemon.speciesFromName) == "function" then
+      local ok, found = pcall(E.Pokemon.speciesFromName, value)
+      if ok then id = tonumber(found) end
+    end
+    if not id or id < 1 or id % 1 ~= 0 then return nil end
+    return id
+  end
   local function viableSpecies(species)
-    species = tonumber(species)
-    if not species or species < 1 or species % 1 ~= 0 then return false end
+    if not species then return false end
     local ok, national = pcall(E.Pokemon.national, species)
     if not ok or type(national) ~= "number"
         or national < 1 or national > 1025 then return false end
@@ -42,8 +53,8 @@ return function(mod, E)
       if type(original) ~= "table" or type(picked) ~= "table" then
         return nil
       end
-      local originalId = tonumber(original.species or original[1])
-      local newId = tonumber(picked.species or picked[1])
+      local originalId = engineSpecies(original.species or original[1])
+      local newId = engineSpecies(picked.species or picked[1])
       if newId and viableSpecies(newId) then
         local item = {}
         for k,v in pairs(original) do item[k] = v end
