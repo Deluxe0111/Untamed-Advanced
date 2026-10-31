@@ -1,4 +1,4 @@
-name: Untamed Modern Spawns OWE checks
+name: Untamed overworld checks
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - 'owe_species_hook.lua'
       - 'modern_owe_adapter.lua'
       - 'tests/modern_spawns_owe_test.lua'
+      - 'tests/owe_spawn_tuning_smoke.lua'
       - '.github/workflows/modern-spawns-owe.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'owe_species_hook.lua'
       - 'modern_owe_adapter.lua'
       - 'tests/modern_spawns_owe_test.lua'
+      - 'tests/owe_spawn_tuning_smoke.lua'
       - '.github/workflows/modern-spawns-owe.yml'
   workflow_dispatch:
 
@@ -28,3 +30,5 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lua5.1
       - name: Modern Spawns OWE contract test
         run: lua5.1 tests/modern_spawns_owe_test.lua
+      - name: Overworld spawn tuning smoke test
+        run: lua5.1 tests/owe_spawn_tuning_smoke.lua

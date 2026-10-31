@@ -241,12 +241,30 @@ return function(mod)
   end
   schema[#schema + 1] = { key = "OW_AMBIENT_CRIES", label = "Ambient cries",
     type = "choice", default = 1, choices = AMBIENT }
+  -- Configurable overworld density. The original port's 4 actors / spawn
+  -- timings are retained as Classic presets; new defaults are more lively.
+  schema[#schema + 1] = { key = "OWE_POPULATION", label = "Wild population",
+    type = "choice", default = 8, choices = {
+      { "Classic (4)", 4 }, { "Balanced (6)", 6 },
+      { "Lively (8)", 8 }, { "Busy (10)", 10 },
+    } }
+  schema[#schema + 1] = { key = "OWE_SPAWN_PROXIMITY", label = "Wild proximity",
+    type = "choice", default = 1, choices = {
+      { "Classic", 0 }, { "Nearby", 1 }, { "Close", 2 },
+    } }
+  schema[#schema + 1] = { key = "OWE_SPAWN_FREQUENCY", label = "Wild frequency",
+    type = "choice", default = 1, choices = {
+      { "Classic", 0 }, { "Faster", 1 }, { "Fastest", 2 },
+    } }
   mod.options:define(schema)
 
   -- Flat option cache, refreshed on change, so hot paths skip mod.options:get.
   local C = {
     -- include/wild_encounter_ow.h, src/wild_encounter_ow.c:46-58
-    OWE_SPAWNS_MAX = 4,
+    -- Physical actor pool is fixed at startup; active limit can change live.
+    OWE_SPAWNS_MAX = 10,
+    OWE_ACTIVE_LIMIT = 8,
+    OWE_SPAWN_PROXIMITY = 1,
     OWE_APPROACH_DISTANCE = 2,
     OWE_APPROACH_JUMP_TIMER_MIN = 16,
     OWE_APPROACH_JUMP_TIMER_MAX = 64,
@@ -276,6 +294,24 @@ return function(mod)
       C[f[1]] = v and true or false
     end
     C.OW_AMBIENT_CRIES = tonumber(mod.options:get("OW_AMBIENT_CRIES")) or 1
+    local population = tonumber(mod.options:get("OWE_POPULATION"))
+    C.OWE_ACTIVE_LIMIT = (population == 4 or population == 6
+      or population == 8 or population == 10) and population or 8
+    local proximity = tonumber(mod.options:get("OWE_SPAWN_PROXIMITY"))
+    C.OWE_SPAWN_PROXIMITY = (proximity == 0 or proximity == 1 or proximity == 2)
+      and proximity or 1
+    C.OWE_SPAWN_DISTANCE_WATER = C.OWE_SPAWN_PROXIMITY == 0 and 3 or 2
+    local frequency = tonumber(mod.options:get("OWE_SPAWN_FREQUENCY"))
+    if frequency == 0 then
+      C.OWE_SPAWN_TIME_MINIMUM, C.OWE_SPAWN_TIME_PER_ACTIVE,
+        C.OWE_SPAWN_TIME_REPLACEMENT = 30, 30, 240
+    elseif frequency == 2 then
+      C.OWE_SPAWN_TIME_MINIMUM, C.OWE_SPAWN_TIME_PER_ACTIVE,
+        C.OWE_SPAWN_TIME_REPLACEMENT = 6, 4, 45
+    else
+      C.OWE_SPAWN_TIME_MINIMUM, C.OWE_SPAWN_TIME_PER_ACTIVE,
+        C.OWE_SPAWN_TIME_REPLACEMENT = 15, 10, 90
+    end
     -- features the running version cannot support stay off
     if not V.feebas then C.WE_OWE_FEEBAS_SPOTS = false end
   end
@@ -1552,7 +1588,16 @@ return function(mod)
   end)
   mod.events:on("mod.options_changed", function(ev)
     if ev.mod ~= mod.id then return end
+    local oldLimit = C.OWE_ACTIVE_LIMIT
+    local oldProximity = C.OWE_SPAWN_PROXIMITY
+    local oldDelay = C.OWE_SPAWN_TIME_MINIMUM
     readOptions()
+    if oldLimit ~= C.OWE_ACTIVE_LIMIT then Owe.trimPopulation() end
+    if oldLimit ~= C.OWE_ACTIVE_LIMIT
+        or oldProximity ~= C.OWE_SPAWN_PROXIMITY
+        or oldDelay ~= C.OWE_SPAWN_TIME_MINIMUM then
+      Owe.setMinimumSpawnTimer()
+    end
     if not C.OW_FOLLOWERS_ENABLED then Follower.reset() end
     if not C.WE_OW_ENCOUNTERS then Owe.reset() end
   end)

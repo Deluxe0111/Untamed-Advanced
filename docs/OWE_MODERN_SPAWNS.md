@@ -5,8 +5,9 @@
 Native Gen 3 land tables contain twelve weighted entries but often only two
 *unique* species. Untamed previously read those native entries directly.
 Modern Spawns can expand the available species **within each original slot**,
-especially in COMPLETE mode, without changing the slot count or changing the
-maximum number of simultaneously visible overworld actors.
+especially in COMPLETE mode, without changing the native encounter-table slot count. Untamed's
+separate **Wild population** option now determines how many overworld
+wild actors can appear simultaneously (4/6/8/10).
 
 The original encounter.species hook does not handle an OWE because Untamed
 constructs the visible actor and its later battle Pokémon itself.
@@ -58,7 +59,7 @@ Modern Spawns COMPLETE and Untamed Advanced enabled:
   matches the battle/capture, including Paldean IDs and shiny spawns.
 - Change Modern Spawns to LIMITED and RANDOM. Re-enter the map, compare
   variety and ensure disabling Modern restores the old native behaviour.
-- Confirm levels, spawn count and relative slot rarity stay unchanged.
+- Confirm levels and relative native slot rarity stay unchanged; set Wild population to Classic (4) to compare the original concurrent spawn count.
 - Test grass and surfing on FRLG, then Emerald/Ruby/Sapphire.
 - Verify roamers, Feebas, outbreaks, scripted actors and followers remain
   unaffected.

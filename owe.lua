@@ -42,7 +42,7 @@ local function ow_species(a) return a.active and a.species or nil end
 local function setMinimumOWESpawnTimer()
   if not C.WE_OW_ENCOUNTERS then return end
   sOWESpawnCountdown = C.OWE_SPAWN_TIME_MINIMUM
-  if E.lureSteps() > 0 and numActive("generated") < C.OWE_SPAWNS_MAX then
+  if E.lureSteps() > 0 and numActive("generated") < C.OWE_ACTIVE_LIMIT then
     sOWESpawnCountdown = C.OWE_SPAWN_TIME_LURE
   end
 end
@@ -50,9 +50,9 @@ Owe.setMinimumSpawnTimer = setMinimumOWESpawnTimer
 
 local function setNewOWESpawnCountdown()
   local n = numActive("generated")
-  if C.WE_OWE_SPAWN_REPLACEMENT and n >= C.OWE_SPAWNS_MAX then
+  if C.WE_OWE_SPAWN_REPLACEMENT and n >= C.OWE_ACTIVE_LIMIT then
     sOWESpawnCountdown = C.OWE_SPAWN_TIME_REPLACEMENT
-  elseif E.lureSteps() > 0 and n < C.OWE_SPAWNS_MAX then
+  elseif E.lureSteps() > 0 and n < C.OWE_ACTIVE_LIMIT then
     sOWESpawnCountdown = C.OWE_SPAWN_TIME_LURE
   else
     sOWESpawnCountdown = C.OWE_SPAWN_TIME_MINIMUM + C.OWE_SPAWN_TIME_PER_ACTIVE * n
@@ -86,7 +86,7 @@ local FX_INFO = {
   shiny      = { 0, 0,  { 4, 4, 4, 6, 6, 4, 4, 4 }, true }, -- SHINY_SPARKLE
 }
 -- Effect sprite pool; dropped when full, like pret.
-local FX_POOL = 8
+local FX_POOL = 12
 local fxPool = {}
 Owe.fx = fxPool
 
@@ -257,7 +257,7 @@ end
 
 local function shouldDespawnGeneratedForNewOWE(a)
   if not isOWE(a, "generated") then return false end
-  return C.WE_OWE_SPAWN_REPLACEMENT and numActive("generated") >= C.OWE_SPAWNS_MAX
+  return C.WE_OWE_SPAWN_REPLACEMENT and numActive("generated") >= C.OWE_ACTIVE_LIMIT
 end
 
 local function shouldPlayFleeSound(a)
@@ -329,7 +329,7 @@ local function getOldestActiveOWESlot(forceRemove)
   local oldest, first
   for s = 0, C.OWE_SPAWNS_MAX - 1 do
     local a = slotActor(s)
-    if ow_species(a) and (not hasNoDespawnFlag(a) or forceRemove) then
+    if isOWE(a, "generated") and a.species and (not hasNoDespawnFlag(a) or forceRemove) then
       oldest, first = a, s
       break
     end
@@ -337,7 +337,7 @@ local function getOldestActiveOWESlot(forceRemove)
   if not first then return nil end
   for s = first, C.OWE_SPAWNS_MAX - 1 do
     local a = slotActor(s)
-    if ow_species(a) and (not hasNoDespawnFlag(a) or forceRemove) and a.age > oldest.age then
+    if isOWE(a, "generated") and a.species and (not hasNoDespawnFlag(a) or forceRemove) and a.age > oldest.age then
       oldest = a
     end
   end
@@ -346,7 +346,7 @@ end
 
 -- GetNextOWESpawnSlot (nil = OWE_INVALID_SPAWN_SLOT)
 local function getNextOWESpawnSlot()
-  if numActive("generated") >= C.OWE_SPAWNS_MAX then
+  if numActive("generated") >= C.OWE_ACTIVE_LIMIT then
     if C.WE_OWE_SPAWN_REPLACEMENT then return getOldestActiveOWESlot(false) end
     return nil
   end
@@ -364,26 +364,59 @@ function Owe.removeOldestGenerated()
   return a
 end
 
--- Tile.  TrySelectTileForOWE -> x, y or nil
+-- Apply population setting changes without resizing the actor pool. Keep
+-- protected shiny encounters, roamers and authored/manual actors intact.
+function Owe.trimPopulation()
+  while numActive("generated") > C.OWE_ACTIVE_LIMIT do
+    local s = getOldestActiveOWESlot(false)
+    if s == nil then break end -- all remaining generated actors are protected
+    Owe.remove(slotActor(s))
+  end
+end
+
+-- Tile. Classic retains the original single random tile pick. The tuned
+-- modes use a bounded series of candidates, biased closer to the player.
+-- Rejecting an unsuitable tile no longer wastes an entire spawn cooldown.
 local function trySelectTileForOWE()
   local water = E.surfing()
   local cd = water and C.OWE_SPAWN_DISTANCE_WATER or C.OWE_SPAWN_DISTANCE_LAND
-  local x = E.random() % (C.OWE_SPAWN_WIDTH_TOTAL - 2 * cd) - (C.OWE_SPAWN_WIDTH_RADIUS - cd)
-  if x < 0 then x = x - cd else x = x + cd end
-  local y = E.random() % (C.OWE_SPAWN_HEIGHT_TOTAL - 2 * cd) - (C.OWE_SPAWN_HEIGHT_RADIUS - cd)
-  if y < 0 then y = y - cd else y = y + cd end
+  local proximity = C.OWE_SPAWN_PROXIMITY or 0
   local px, py = E.playerCur() -- PlayerGetDestCoords
-  x, y = x + px, y + py
+  local attempts = proximity == 0 and 1 or 8
 
-  if not E.insidePlayerMap(x, y) then return nil end
-  local elevation = E.elevationAt(x, y)
-  if elevation == 0 or elevation == 15 then return nil end
+  for attempt = 1, attempts do
+    local dx, dy
+    if proximity == 0 then
+      -- Original pokeemerald-expansion distribution.
+      dx = E.random() % (C.OWE_SPAWN_WIDTH_TOTAL - 2 * cd) - (C.OWE_SPAWN_WIDTH_RADIUS - cd)
+      if dx < 0 then dx = dx - cd else dx = dx + cd end
+      dy = E.random() % (C.OWE_SPAWN_HEIGHT_TOTAL - 2 * cd) - (C.OWE_SPAWN_HEIGHT_RADIUS - cd)
+      if dy < 0 then dy = dy - cd else dy = dy + cd end
+    else
+      -- Most picks are close enough to notice. The last two attempts also
+      -- cover the outer field, so narrow routes do not become spawn-starved.
+      local near = attempt <= 6 and (proximity == 2 or E.random() % 4 ~= 0)
+      local wr = near and (proximity == 2 and 3 or 5) or C.OWE_SPAWN_WIDTH_RADIUS
+      local hr = near and (proximity == 2 and 2 or 3) or C.OWE_SPAWN_HEIGHT_RADIUS
+      dx = E.random() % (2 * wr + 1) - wr
+      dy = E.random() % (2 * hr + 1) - hr
+    end
 
-  local kind = E.encounterKind(x, y)
-  local isEncounterTile = (water and kind == "water") or (not water and kind == "land")
-  if isEncounterTile and not E.collisionAt(x, y) then
-    -- GetObjectEventIdByPosition(x, y, 0) == OBJECT_EVENTS_COUNT
-    if not E.Objects.at(x, y) and not E.actorAt(x, y) then return x, y end
+    -- No spawning on the player, or immediately adjacent while surfing.
+    if math.max(math.abs(dx), math.abs(dy)) >= cd then
+      local x, y = px + dx, py + dy
+      if E.insidePlayerMap(x, y) then
+        local elevation = E.elevationAt(x, y)
+        if elevation ~= 0 and elevation ~= 15 then
+          local kind = E.encounterKind(x, y)
+          if ((water and kind == "water") or (not water and kind == "land"))
+              and not E.collisionAt(x, y)
+              and not E.Objects.at(x, y) and not E.actorAt(x, y) then
+            return x, y
+          end
+        end
+      end
+    end
   end
   return nil
 end

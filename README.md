@@ -2,7 +2,7 @@
 
 A line-by-line port of pokeemerald-expansion's **Follower Pokémon** and **Overworld Wild Encounters**, plus Emerald Rogue's **encounter chaining**, for FireRed, LeafGreen, Ruby, Sapphire and Emerald on [gen1recomp](https://github.com/bryanthaboi/gen1recomp).
 
-Same logic, same timings, same messages. If you've played a romhack with these features, this should feel exactly the same.
+The original encounter rules, battle flow and messages remain, with **configurable wild encounter density**. Choose Classic settings for the original 1:1 spawn pacing and range, or use the livelier defaults.
 
 ## What you get
 
@@ -12,6 +12,22 @@ Same logic, same timings, same messages. If you've played a romhack with these f
 - **A matching world.** Mewtwo, Snorlax, the legendary birds and every other Pokémon already standing on the maps (Kecleon, Latias, the Regis and friends in Emerald) get the same sprites and idle animation as your buddy.
 
 Pretty much everything can be toggled in the mod's options.
+
+## Overworld wild population and spawn settings
+
+Untamed now exposes three independent mod options (all work without Modern Spawns or Nuzlocke):
+
+| Option | Choices | Default |
+|---|---|---|
+| Wild population | Classic (4), Balanced (6), Lively (8), Busy (10) | Lively (8) |
+| Wild proximity | Classic, Nearby, Close | Nearby |
+| Wild frequency | Classic, Faster, Fastest | Faster |
+
+**Nearby** favours wild Pokémon within about 5 horizontal / 3 vertical tiles; **Close** favours around 3 / 2 tiles. Both retry up to eight valid-tile candidates on a spawn attempt and retain some wider placements. Classic uses the original placement distribution and single attempt.
+
+**Faster** uses 15 initial frames + 10 per visible wild and a 90-frame full-population replacement timer; Classic remains 30 + 30 per visible wild / 240 replacement. Fastest uses 6 + 4 / 45. A fixed maximum ten-actor pool avoids reallocating actors when settings change. Frequency values are game frames at nominal 60 FPS, not real-time guarantees.
+
+These affect **how many, where and how often** wild Pokémon appear, not the native wild-table slot probabilities or levels. Existing collision, terrain, repel, restricted-map and special encounter protections remain in place. See [Spawn tuning guide](docs/OWE_SPAWN_TUNING.md) for details and tests.
 
 ## Nuzlocke Randomiser compatibility
 
@@ -54,8 +70,9 @@ the larger per-slot species pools instead of repeatedly displaying only the
 original two Route 1 species. RANDOM likewise draws a new table per spawn;
 LIMITED and EVERY MAP use their corresponding rosters.
 
-The **native number of spawn slots, appearance odds, level ranges and
-concurrent overworld actor count remain unchanged**. Untamed falls back to
+The **native number of encounter-table slots, appearance odds and level ranges remain unchanged**.
+Concurrent visible Pokémon are now controlled separately by **Wild population**.
+Untamed falls back to
 native species for missing provider APIs and any alternate form without a
 supported sprite. Special roamers, Feebas, outbreaks and scripted actors keep
 their separate logic; Nuzlocke's Random Wild hook still runs afterwards for
